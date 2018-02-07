@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0" />
+</head>
+<link rel="stylesheet" type="text/css" href="swiper-3.4.2.min.css" />
+<link rel="stylesheet" type="text/css" href="animate.min.css" />
+<style type="text/css">
+    *{margin:0px;padding:0px;}
+    #calc,#calc_swiper_box{height:100vh;overflow:hidden;}
+    .calc_box{position:fixed;width:100%;height:100%;z-index:1000;top:0px;left:0px;}
+    .calc_box .box {padding:10px;border:1px solid #999;background:#fff;border-radius:5px;width:70%;position:absolute;left:15%;top:25%;}
+    .radio_box{margin-bottom:5px;overflow:hidden;}
+    .calc_box .box select{display:block;margin-bottom:5px;width:100%;height:30px;}
+    .jishuanqi_box{border:1px solid #999;padding:10px;margin-top:10px;}
+    .text-center{text-align:center;}
+    .jishuanqi_box .title{margin-bottom:10px;}
+    .calc_box .box .title1{padding:5px 0px;background:#39c6fa;color:#fff;margin-bottom:10px;}
+    .jishuanqi_box .row{ display: -webkit-box; display: -moz-box; display:-webkit-flex;display: -ms-flexbox;display:flex;}
+    .jishuanqi_box div{margin-bottom:5px;}
+    .jishuanqi_box .label{width:80px;display:inline-block;-webkit-box-flex: 1;-webkit-flex: 1;-ms-flex: 1;flex: 1;}
+    .jishuanqi_box input{height:30px;}
+    #calc_swiper_box .swiper-slide{height:100%;}
+    .swiper-slide1{background:url('image/1.jpg')no-repeat;background-size:100% 100%;}
+    #calc_swiper_box .swiper-slide .logo{width:60%;margin-top:10px;margin-left:10px;}
+    #calc_swiper_box .p1{font-size:30px;margin-left:50px;margin-top:40px;font-family: 'microsoft yahei',微软雅黑, 宋体, 新宋体,sans-serif;}
+    #calc_swiper_box .p2{font-size:30px;margin-left:100px;margin-top:20px;font-family: 'microsoft yahei',微软雅黑, 宋体, 新宋体,sans-serif;}
+    .close{text-align:center;margin-top:10px;color:#fff;background:#39c6fa;padding:5px 0px;}
+</style>
+<body>
+    <div id="calc">
+        <div class="swiper-container" id="calc_swiper_box">
+          <div class="swiper-wrapper">
+            <div class="swiper-slide swiper-slide1">
+                <img src="image/logo.png" class="logo" />
+                <p class="ani p1" swiper-animate-effect="fadeInLeft" swiper-animate-duration="0.5s" swiper-animate-delay="0.5s">二手房交易,</p>
+                <p class="ani p2" swiper-animate-effect="fadeInLeft" swiper-animate-duration="0.5s" swiper-animate-delay="0.8s">应该缴纳哪些税？</p>
+                <div class="calc_box ani" swiper-animate-effect="fadeInDown" swiper-animate-duration="0.5s" swiper-animate-delay="0s">
+                    <div class="box">
+                        <p class="text-center title1">类型:{{title}}</p>
+                        <select name="zhuanran" v-model="zhuanran_selected" v-if="isShow0" @change="zhuanran_selected_change()">
+                            <option v-for="option in zhuanran" v-bind:value="option">{{option.name}}</option>
+                        </select>
+                        <select name="zhuanran1" v-model="zhuanran_leve1_selected" v-if="isShow1" >
+                            <option v-for="option in zhuanran1" v-bind:value="option">{{option.name}}</option>
+                        </select>
+                        <select name="zhuanran2" v-model="zhuanran_leve2_selected" v-if="isShow2" >
+                            <option v-for="option in zhuanran2" v-bind:value="option">{{option.name}}</option>
+                        </select>
+<!--                         <select name="zhuanran3" v-model="zhuanran_leve3_selected" v-if="isShow3">
+                            <option v-for="option in zhuanran3" v-bind:value="option">{{option.name}}</option>
+                        </select> -->
+                        <p>税率：{{shuilv}}</p>
+                        <div v-if="jishuan_box" class="jishuanqi_box">
+                            <p class="text-center title">计算器</p>
+                            <div class="row" v-if="yj">
+                                <span class="label">计税依据:</span><input type="text" v-model="jisui" />
+                            </div>
+                            <div class="row" v-if="cb">
+                                <span class="label">取得成本:</span><input type="text" v-model="chengben" />
+                            </div>
+                            <div class="row"><span class="label">应交税钱:</span>{{total}}元</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          </div>
+        </div>
+    </div>
+    <script src="vue.js"></script>
+    <script type="text/javascript" src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <script type="text/javascript" src="swiper.animate1.0.2.min.js"></script>
+    <script type="text/javascript" src="swiper-3.4.2.jquery.min.js"></script>
+    <script type="text/javascript">
+    var select_arr = [
+        { name: '房屋继承', value: 'A1', leve0: [], shuilv: '免税' },
+        { name: '赠与', value: 'A2', leve0: [], shuilv: '免税' },
+        { name: '离婚析产', value: 'A3', leve0: [], shuilv: '免税' },
+        { name: '夫妻加减名', value: 'A4', leve0: [], shuilv: '免税' },
+        { name: '拍卖', value: 'A5', leve0: [
+            {name: '未满2年', value: 'A5_1',leve1:[
+                {name: '增值税以及增值税附征',value: 'A5_1_1',shuilv: '0.056',leve2: []},
+                {name: '个人所得税',value: 'A5_1_2',leve2: [
+                    {name: '核定',value: 'A5_1_1_1',shuilv: '免税'},
+                    {name: '据实',value: 'A5_1_1_2',shuilv: '0.2',type:'heding'}
+                ]}
+            ]}, 
+            {name: '满2年不满5年', value: 'A5_2',leve1:[
+                {name: '增值税以及增值税附征',value: 'A5_2_1',shuilv: '免税',leve2: []},
+                {name: '个人所得税',value: 'A5_2_2',leve2: [
+                    {name: '核定',value: 'A5_2_1_1',shuilv: '免税'},
+                    {name: '据实',value: 'A5_2_1_2',shuilv: '0.2',type:'heding'}
+                ]}
+            ]},
+            {name: '满5年且家庭唯一住房（广东省内）', value: 'A5_3',leve1:[
+                {name: '增值税以及增值税附征',value: 'A5_3_1',shuilv: '免税',leve2: []},
+                {name: '个人所得税',value: 'A5_3_2',shuilv: '免税',leve2: []}
+            ]},
+        ]},
+        { name: '买卖', value: 'A6', leve0: [
+            {name: '未满2年', value: 'A6_1',leve1:[
+                {name: '增值税以及增值税附征',value: 'A6_1_1',shuilv: '0.056',leve2: []},
+                {name: '个人所得税',value: 'A6_1_2',leve2: [
+                    {name: '核定',value: 'A6_1_1_1',shuilv: '免税'},
+                    {name: '据实',value: 'A6_1_1_2',shuilv: '0.2',type:'heding'}
+                ]}
+            ]}, 
+            {name: '满2年不满5年', value: 'A6_2',leve1:[
+                {name: '增值税以及增值税附征',value: 'A6_2_1',shuilv: '免税',leve2: []},
+                {name: '个人所得税',value: 'A6_2_2',leve2: [
+                    {name: '核定',value: 'A6_2_1_1',shuilv: '免税'},
+                    {name: '据实',value: 'A6_2_1_2',shuilv: '0.2',type:'heding'}
+                ]}
+            ]},
+            {name: '满5年且家庭唯一住房（广东省内）', value: 'A6_3',leve1:[
+                {name: '增值税以及增值税附征',value: 'A6_3_1',shuilv: '免税',leve2: []},
+                {name: '个人所得税',value: 'A6_3_2',shuilv: '免税',leve2: []}
+            ]},
+        ]},
+        { name: '房屋继承', value: 'B1', leve0: [], shuilv: '免税' },
+        { name: '赠与', value: 'B2', leve0: [
+            {name: '1、配偶、父母、子女、祖父母、外祖父母、孙子女、外孙子女、兄弟姐妹；2、与赠与人承担直接抚养或者赡养义务的抚养人或者赡养人；', value: 'B2_1',leve1:[
+                {name: '契税',value: 'B2_1_1',shuilv: '0.03',leve2: []}
+            ]}, 
+            {name: '除上述规定情形以外赠与他人', value: 'B2_2',leve1:[
+                {name: '契税',value: 'B2_2_1',shuilv: '0.03',leve2: []},
+                {name: '个人所得税',value: 'B2_2_2',shuilv: '0.2',leve2: []}
+            ]}
+        ]},
+        { name: '离婚析产', value: 'B3', leve0: [], shuilv: '免税' },
+        { name: '夫妻加减名', value: 'B4', leve0: [], shuilv: '免税' },
+        { name: '拍卖', value: 'B5', leve0: [
+            {name: '建筑面积90平方以下', value: 'B5_1',leve1:[
+                {name: '家庭唯一住房',value: 'B5_1_1',leve2: [
+                    {name: '契税',value: 'B5_1_1_1',shuilv: '0.01',type:'heding'}
+                ]},
+                {name: '家庭第二套住房',value: 'B5_1_1',leve2: [
+                    {name: '契税',value: 'B5_1_1_2',shuilv: '0.01',type:'heding'}
+                ]},
+                {name: '家庭第三套住房及以上',value: 'B5_1_1',leve2: [
+                    {name: '契税',value: 'B5_1_1_3',shuilv: '0.03',type:'heding'}
+                ]}
+            ]}, 
+            {name: '建筑面积90平方以上', value: 'B5_2',leve1:[
+                {name: '家庭唯一住房',value: 'B5_2_1',leve2: [
+                    {name: '契税',value: 'B5_2_1_1',shuilv: '0.01',type:'heding'}
+                ]},
+                {name: '家庭第二套住房',value: 'B5_1_1',leve2: [
+                    {name: '契税',value: 'B5_2_1_2',shuilv: '0.02',type:'heding'}
+                ]},
+                {name: '家庭第三套住房及以上',value: 'B5_2_1',leve2: [
+                    {name: '契税',value: 'B5_2_1_3',shuilv: '0.03',type:'heding'}
+                ]}
+            ]}
+        ]},
+        { name: '买卖', value: 'B6', leve0: [
+            {name: '建筑面积90平方以下', value: 'B6_1',leve1:[
+                {name: '家庭唯一住房',value: 'B6_1_1',leve2: [
+                    {name: '契税',value: 'B6_1_1_1',shuilv: '0.01',type:'heding'}
+                ]},
+                {name: '家庭第二套住房',value: 'B6_1_1',leve2: [
+                    {name: '契税',value: 'B6_1_1_2',shuilv: '0.01',type:'heding'}
+                ]},
+                {name: '家庭第三套住房及以上',value: 'B6_1_1',leve2: [
+                    {name: '契税',value: 'B6_1_1_3',shuilv: '0.03',type:'heding'}
+                ]}
+            ]}, 
+            {name: '建筑面积90平方以上', value: 'B6_2',leve1:[
+                {name: '家庭唯一住房',value: 'B6_2_1',leve2: [
+                    {name: '契税',value: 'B6_2_1_1',shuilv: '0.01',type:'heding'}
+                ]},
+                {name: '家庭第二套住房',value: 'B6_1_1',leve2: [
+                    {name: '契税',value: 'B6_2_1_2',shuilv: '0.02',type:'heding'}
+                ]},
+                {name: '家庭第三套住房及以上',value: 'B6_2_1',leve2: [
+                    {name: '契税',value: 'B6_2_1_3',shuilv: '0.03',type:'heding'}
+                ]}
+            ]}
+        ]},
+    ];
+
+
+    $(function(){
+        var mySwiper = new Swiper('.swiper-container', {
+            direction : 'vertical',
+            onInit: function(swiper){ //Swiper2.x的初始化是onFirstInit
+                swiperAnimateCache(swiper); //隐藏动画元素 
+                swiperAnimate(swiper); //初始化完成开始动画
+            }, 
+            onSlideChangeEnd: function(swiper){ 
+                swiperAnimate(swiper); //每个slide切换结束时也运行当前slide动画
+            }
+        })
+    })
+    function getQueryString(name) { 
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i"); 
+        var r = window.location.search.substr(1).match(reg); 
+        if (r != null) return unescape(r[2]); 
+        return null; 
+    }  
+    new Vue({
+        el: '#calc',
+        data: {
+            zhuanran: select_arr,
+            jisui: '',
+            chengben: '',
+            zhuanran1: [],
+            zhuanran2: [],
+            zhuanran3: [],
+            zhuanran_selected: '',
+            zhuanran_leve1_selected: '',
+            zhuanran_leve2_selected: '',
+            zhuanran_leve3_selected: '',
+            isShow0: false,
+            isShow1: false,
+            isShow2: false,
+            isShow3: false,
+            shuilv: 0,
+            jishuan_box: false,
+            total: 0,
+            open_type:'A1',
+            title:'房屋继承',
+            is_first:false,
+            suanfa:'type1',
+            yj:false,
+            cb:false
+        },
+        created: function() {
+            this.open_type = getQueryString('type');
+            var title = '';
+
+            switch(this.open_type){
+                case 'A1':
+                     title = '房屋继承';
+                     this.zhuanran = select_arr[0];
+                     break
+                case 'A2':
+                     title = '赠与';
+                     this.zhuanran = select_arr[1];
+                     break
+                case 'A3':
+                     title = '离婚析产';
+                     this.zhuanran = select_arr[2];
+                     break
+                case 'A4':
+                     title = '夫妻加减名';
+                     this.zhuanran = select_arr[3];
+                     break
+                case 'A5':
+                     title = '拍卖';
+                     this.zhuanran = select_arr[4];
+                     break
+                case 'A6':
+                     title = '买卖';
+                     this.zhuanran = select_arr[5];   
+                     break
+                case 'B1':
+                     title = '房屋继承';
+                     this.zhuanran = select_arr[6];   
+                     break
+                case 'B2':
+                     title = '赠与';
+                     this.zhuanran = select_arr[7];   
+                     break
+                case 'B3':
+                     title = '离婚析产';
+                     this.zhuanran = select_arr[8];   
+                     break
+                case 'B4':
+                     title = '夫妻加减名';
+                     this.zhuanran = select_arr[9];   
+                     break
+                case 'B5':
+                     title = '拍卖';
+                     this.zhuanran = select_arr[10];   
+                     break
+                case 'B6':
+                     title = '买卖';
+                     this.zhuanran = select_arr[11];
+                     break
+            }
+            this.title = title;
+            this.zhuanran_selected = this.zhuanran;
+        },
+        methods: {
+            zhuanran_selected_fun: function() {
+                if(this.zhuanran_selected.leve0.length <= 0){
+                    if(this.zhuanran_selected.shuilv == '免税'){
+                        this.shuilv = '免税';
+                    }
+                }else{
+                    this.isShow0 = true;
+                    this.zhuanran = this.zhuanran_selected.leve0;
+                    this.zhuanran_selected = this.zhuanran[0];
+                    if(this.zhuanran_selected.leve1.length <= 0){
+
+                    }else{
+                        this.isShow1 = true;
+                        this.zhuanran1 = this.zhuanran_selected.leve1;
+                        this.zhuanran_leve1_selected = this.zhuanran1[0];
+                        if(this.zhuanran_leve1_selected.shuilv == '免税'){
+                            this.shuilv = '免税';
+                            this.jishuan_box = false;
+                        }else{
+                            this.shuilv = this.zhuanran_leve1_selected.shuilv;
+                            if(this.zhuanran_leve1_selected.type){
+                                this.suanfa = 'type2';
+                                this.cb = false;
+                            }else{
+                                this.suanfa = 'type1';
+                                this.cb = true;
+                            }
+                            this.jishuan_box = true;
+                        }
+                    }
+                }                
+            },
+            zhuanran_selected_change:function(){
+                if(this.zhuanran_selected.leve1.length <= 0){
+                    if(this.zhuanran_selected.shuilv == '免税'){
+                        this.shuilv = '免税';
+                        this.jishuan_box = false;
+                    }else{
+                        this.shuilv = this.zhuanran_selected.shuilv;
+                            if(this.zhuanran_selected.type){
+                                this.suanfa = 'type2';
+                                this.cb = false;
+                            }else{
+                                this.suanfa = 'type1';
+                                this.cb = true;
+                            }
+                        this.jishuan_box = true;
+                    }
+                }else{
+                    this.zhuanran1 = this.zhuanran_selected.leve1;
+                    this.zhuanran_leve1_selected = this.zhuanran1[0];
+                    if(this.zhuanran_leve1_selected.leve2.length <= 0){
+                        if(this.zhuanran_leve1_selected.shuilv == '免税'){
+                            this.shuilv = '免税';
+                            this.jishuan_box = false;
+                        }else{
+                            this.shuilv = this.zhuanran_leve1_selected.shuilv;
+                                if(this.zhuanran_leve1_selected.type){
+                                this.suanfa = 'type2';
+                                this.cb = false;
+                            }else{
+                                this.suanfa = 'type1';
+                                this.cb = true;
+                            }
+                            this.jishuan_box = true;
+                        }
+                    }
+                }
+            },
+            zhuanran_selected_change1:function(){
+                if(this.zhuanran_leve1_selected.leve2.length > 0){
+                    this.isShow2 = true;
+                    this.zhuanran2 = this.zhuanran_leve1_selected.leve2;
+                    this.zhuanran_leve2_selected = this.zhuanran2[0];
+                    if(this.zhuanran_leve2_selected.shuilv == '免税'){
+                        this.shuilv = '免税';
+                        this.jishuan_box = false;
+                    }else{
+                        this.shuilv = this.zhuanran_leve2_selected.shuilv;
+                            if(this.zhuanran_leve2_selected.type){
+                                this.suanfa = 'type2';
+                                this.cb = false;
+                            }else{
+                                this.suanfa = 'type1';
+                                this.cb = true;
+                            }
+                        this.jishuan_box = true;                        
+                    }
+                }else{
+                    this.isShow2 = false;
+                    if(this.zhuanran_leve1_selected.shuilv == '免税'){
+                        this.shuilv = '免税';
+                        this.jishuan_box = false;
+                    }else{
+                        this.shuilv = this.zhuanran_leve1_selected.shuilv;
+                            if(this.zhuanran_leve1_selected.type){
+                                this.suanfa = 'type2';
+                                this.cb = false;
+                            }else{
+                                this.suanfa = 'type1';
+                                this.cb = true;
+                            }
+                        this.jishuan_box = true;                        
+                    }
+                }
+            },
+            zhuanran_selected_change2:function(){
+                if(this.zhuanran_leve2_selected.shuilv == '免税'){
+                    this.shuilv = '免税';
+                    this.jishuan_box = false;
+                }else{
+                    this.shuilv = this.zhuanran_leve2_selected.shuilv;
+                    if(this.zhuanran_leve2_selected.type){
+                        this.suanfa = 'type2';
+                        this.cb = false;
+                    }else{
+                        this.suanfa = 'type1';
+                        this.cb = true;
+                    }
+                    this.jishuan_box = true;                        
+                }
+            },
+            jisuan:function(){
+                if(this.suanfa == 'type1'){
+                    if (Number(this.jisui) < Number(this.chengben) || Number(this.chengben) > Number(this.jisui)) {
+                        this.total = '取得成本不能大于计税依据';
+                    } else {
+                        this.total = ((this.jisui - this.chengben) * this.shuilv).toFixed(3);
+                    } 
+                }else if(this.suanfa == 'type2'){
+                    this.total = (this.jisui * this.shuilv).toFixed(3);
+                }
+            }
+        },
+        beforeMount: function() {
+            this.zhuanran_selected_fun();
+        },
+        watch: {
+            zhuanran_leve1_selected: function() {
+                this.zhuanran_selected_change1();
+            },
+            zhuanran_leve2_selected: function() {
+                this.zhuanran_selected_change2();
+            },
+            jishuan_box:function(curVal){
+                if(curVal){
+                    this.jisuan()
+                }
+            },
+            shuilv: function(curVal,oldVal) {
+                this.jisuan()
+                // if (curVal == '0') {
+                //     this.jishuan_box = false;
+                //     return
+                // } else {
+                //     this.jishuan_box = true;
+                // }
+                // if (Number(this.jisui) < Number(this.chengben) || Number(this.chengben) > Number(this.jisui)) {
+                //     this.total = '取得成本不能大于计税依据';
+                // } else {
+                //     this.total = ((this.jisui - this.chengben) * curVal).toFixed(3);
+                // }
+            },
+            jisui: function(curVal) {
+                this.jisuan()
+                // if (Number(curVal) < Number(this.chengben)) {
+                //     this.total = '取得成本不能大于计税依据';
+                // } else {
+                //     this.total = ((curVal - this.chengben) * this.shuilv).toFixed(3);
+                // }
+            },
+            chengben: function(curVal) {
+                this.jisuan()
+                // if (Number(curVal) > Number(this.jisui)) {
+                //     this.total = '取得成本不能大于计税依据';
+                // } else {
+                //     this.total = ((this.jisui - curVal) * this.shuilv).toFixed(3);
+                // }
+            },
+
+        }
+    })
+    </script>
+</body>
+
+</html>
